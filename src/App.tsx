@@ -18,7 +18,7 @@ interface ChatMessage {
 }
 
 const API_CONFIG = {
-  baseUrl: import.meta.env.VITE_API_BASE_URL || "https://localhost:60026",
+  baseUrl: "https://177.177.0.236:60026",
   endpoints: {
     chat: '/api/Chat'
   }
