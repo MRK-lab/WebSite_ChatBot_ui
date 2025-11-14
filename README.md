@@ -1,93 +1,66 @@
 ﻿# Argetek AI Chatbot
 
-Modern, koyu temaya sahip ve iframe içinde de aynı görsel deneyimi sunan tek sayfalık chatbot arayüzü.
+Artık proje Vite + React + TypeScript yapısında çalışıyor. Tek index.html dosyası hem tam sayfada hem de iframe içinde aynı arayüzü sunuyor; tüm kod src/ altındaki modüler React bileşenlerinde tutuluyor.
 
-## Özellikler
+## Teknoloji Yığını
 
-- **Modern tasarım**: Koyu tema, gradyan tonlar, yumuşak animasyonlar
-- **Tek giriş noktası**: `index.html` hem tam sayfada hem de iframe içinde aynı React arayüzünü sunar
-- **API odaklı**: Gönderilen mesajı .NET tabanlı API’nize POST eder
-- **Demo modu**: API kapalıyken rastgele cevap üretip akışı test edebilirsiniz
+- React 18 + TypeScript
+- Vite geliştirme/build pipeline’ı
+- Tek giriş noktası: index.html → /src/main.tsx
+- UI bileşenleri: src/App.tsx
+- Stil dosyaları: src/index.css
 
-## Dosyalar
+## Kurulum & Çalıştırma
 
-- `index.html`: React bileşenini içeren tek HTML dosyası (iframe/tam sayfa)
-- `chatbot.js`: Tek bileşeni bağımsız olarak import etmek isteyenler için ES module
-- `package.json` / `vite.config.js`: Vite dev ve build ayarları
-- `README.md`: Bu dosya
+`ash
+npm install
+npm run dev        # http://localhost:5173
+npm run build      # dist/ klasörü oluşturur
+npm run preview    # build çıktısını test eder
+`
 
-## Geliştirme / Çalıştırma
+> 
+pm run dev komutu host:true ile çalışır; aynı ağdaki cihazlar da erişebilir.
 
-1. Bağımlılıkları kurun: `npm install`
-2. Dev sunucuyu başlatın: `npm run dev`
-3. Tarayıcıdan açın: `http://localhost:5173/`
+## Yayına Alma / iFrame Kullanımı
 
-> Vite dev sunucusu `host:true` ile gelir; LAN’daki cihazlardan aynı URL’yi kullanarak erişebilirsiniz.
+Build aldıktan sonra dist/ klasörünü herhangi bir statik sunucuya koymanız yeterli. Ardından sitenizde şu şekilde kullanabilirsiniz:
 
-Prod yayın için:
-
-```
-npm run build
-npx serve dist -l 4173
-```
-
-veya elde ettiğiniz `dist/` klasörünü nginx/IIS üzerinde servis edip `index.html` dosyasını iframe’den çağırın.
-
-## iFrame’e Gömme
-
-Tek dosya olduğu için herhangi bir sunucudan erişilebilir hale getirmeniz yeterli. Örnek:
-
-```html
+`html
 <iframe
-  src="https://yourdomain.com/chatbot/index.html"
+  src="https://alanadiniz.com/chatbot/index.html"
   width="400"
   height="600"
   frameborder="0"
   style="border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.25);overflow:hidden;">
 </iframe>
-```
+`
 
-- İçi tamamen responsive olduğu için iframe’i daraltıp genişletebilirsiniz.
-- Aynı dosyayı tam sayfa açtığınızda gördüğünüz deneyim iframe’de bire bir korunur.
+Iframe içinde açılan sayfa ile tam sayfa deneyimi aynıdır; responsive yapı sayesinde genişlik/yükseklik değerlerini değiştirebilirsiniz.
 
 ## API Entegrasyonu
 
-Varsayılan endpoint tek alan bekliyor:
+Varsayılan endpoint yalnızca prompt alanı bekler:
 
-```
+`
 POST https://localhost:60026/api/Chat
 Content-Type: application/json
 accept: */*
 Body: { "prompt": "kullanıcı mesajı" }
-```
+`
 
-`index.html` içindeki `API_CONFIG` değerini değiştirerek başka sunuculara yönlendirebilirsiniz.
+src/App.tsx dosyasındaki API_CONFIG değerini değiştirerek farklı ortamlara yönlendirebilirsiniz. İsteğe bağlı olarak tarayıcı konsolundan window.API_KEY = 'Bearer xxx' yazarak Authorization başlığını otomatik ekleyebilirsiniz.
 
-### Yanıt Beklentisi
+Yanıt işlemesi:
+- 	ext/plain → doğrudan kullanıcıya gösterilir.
+- pplication/json → esponse, message, content, esult, 	ext alanlarından ilki seçilir; hiçbiri yoksa JSON string’i olduğu gibi yazdırılır.
 
-Arayüz iki tür cevabı otomatik işler:
+## Hata Yönetimi
 
-1. `text/plain` → direkt kullanıcıya gösterilir.
-2. `application/json` → şu alanlardan ilk bulunan ekrana yazılır: `response`, `message`, `content`, `result`, `text`. Bunlardan hiçbiri yoksa JSON string’i olduğu gibi gösterilir.
+API çağrısı başarısız olursa kullanıcı mesajı listede kalır, bot mesajı eklenmez ve ekranda “Mesaj gönderilirken bir hata oluştu…” uyarısı görünür. Demo cevapları sadece API dönüşü başarılı olduğunda ancak içerik boş gelirse devreye girer.
 
-### Önemli Notlar
+## Notlar
 
-- CORS: Tarayıcıdan gelen isteklere izin verildiğinden emin olun.
-- HTTPS: `https://localhost` gibi self-signed sertifikalar için tarayıcıda “Advanced → Continue” diyerek güven verin; aksi halde fetch reddedilir.
-- Kimlik doğrulama gerekiyorsa tarayıcıya `window.API_KEY = 'Bearer ...'` tanımlayıp `Authorization` başlığı ekleyebilirsiniz (uygulama bu alanı otomatik okur).
-
-## Özelleştirme
-
-- Renkler ve tipografi `index.html` içindeki `<style>` bloğunda tanımlıdır.
-- İkonlar Font Awesome CDN’den, fontlar Google Fonts’tan yüklenir; dilerseniz yerel kopya ekleyin.
-- Mesaj balonu genişlikleri, animasyonlar ve giriş alanı ölçüleri CSS içinde düzenlenebilir.
-
-## Test
-
-- Demo modu API yanıtı alınamazsa rastgele cevap üretir, bu sayede UI akışını hızlıca görebilirsiniz.
-- `npm run dev` yerine statik sunucu kullanmak isterseniz: `python -m http.server 8000` çalıştırıp `index.html` dosyasını açmanız yeterli.
-
-## Destek
-
-Herhangi bir soruda: tech@argetek.ai
-
+- Sertifika uyarıları: https://localhost gibi self-signed sertifikalar kullanıyorsanız tarayıcıda bir kez “güven” vermeniz gerekir.
+- Kod ayrımı: Yeni yapıda ek bileşenler veya hook’lar eklemek kolaydır; src/ altında ihtiyaçlara göre klasörleyebilirsiniz.
+- Test/format: TypeScript + Vite yapısı Jest/vitest, ESLint vb. araçları kolayca ekleyebilmenizi sağlar.
