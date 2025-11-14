@@ -19,6 +19,7 @@ interface ChatMessage {
 
 const API_CONFIG = {
   baseUrl: "https://177.177.0.236:60026",
+  // baseUrl: "https://localhost:60026",
   endpoints: {
     chat: '/api/Chat'
   }
