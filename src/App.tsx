@@ -31,13 +31,6 @@ const INITIAL_MESSAGE: ChatMessage = {
   timestamp: new Date().toISOString()
 };
 
-const demoResponses = [
-  'Anladım, size başka nasıl yardımcı olabilirim?',
-  'Bu konuda yardımcı olmaktan memnuniyet duyarım.',
-  'Dilerseniz biraz daha detay paylaşabilirsiniz.',
-  'Size en uygun çözümü bulmak için buradayım.',
-  'Bu soruyu ekibimizle paylaşmam gerekebilir.'
-];
 
 const BotIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
@@ -137,7 +130,12 @@ const App = () => {
     const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.chat}`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ prompt: message })
+      body: JSON.stringify({
+        id: 0,
+        prompt: message,
+        response: '',
+        createdAt: new Date().toISOString()
+      })
     });
 
     if (!response.ok) {
@@ -149,7 +147,7 @@ const App = () => {
 
     if (contentType.includes('application/json')) {
       const data = await response.json();
-      return formatApiResponse(data) || demoResponses[Math.floor(Math.random() * demoResponses.length)];
+      return formatApiResponse(data);
     }
 
     return await response.text();
@@ -252,3 +250,4 @@ const App = () => {
 };
 
 export default App;
+
