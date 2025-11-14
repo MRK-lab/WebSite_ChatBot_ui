@@ -53,7 +53,9 @@ src/App.tsx dosyasındaki API_CONFIG değerini değiştirerek farklı ortamlara 
 
 Yanıt işlemesi:
 - 	ext/plain → doğrudan kullanıcıya gösterilir.
-- pplication/json → esponse, message, content, esult, 	ext alanlarından ilki seçilir; hiçbiri yoksa JSON string’i olduğu gibi yazdırılır.
+- pplication/json → 
+esponse, message, content, 
+esult, 	ext alanlarından ilki seçilir; hiçbiri yoksa JSON string’i olduğu gibi yazdırılır.
 
 ## Hata Yönetimi
 
