@@ -1,5 +1,6 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="tr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,12 +17,20 @@
             box-sizing: border-box;
         }
 
+        html, body {
+            height: 100%;
+        }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #0a0a0a;
             color: #ffffff;
             overflow: hidden;
-            height: 100vh;
+            min-height: 100vh;
+        }
+
+        #chatbot-root {
+            height: 100%;
         }
 
         .chatbot-container {
@@ -158,8 +167,13 @@
             animation: typing 1.4s infinite ease-in-out;
         }
 
-        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
-        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        .typing-dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
 
         .chat-input-container {
             padding: 20px;
@@ -249,6 +263,7 @@
                 opacity: 0;
                 transform: translateY(20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -256,10 +271,14 @@
         }
 
         @keyframes typing {
-            0%, 80%, 100% {
+
+            0%,
+            80%,
+            100% {
                 transform: scale(0);
                 opacity: 0.5;
             }
+
             40% {
                 transform: scale(1);
                 opacity: 1;
@@ -277,14 +296,42 @@
         }
     </style>
 </head>
+
 <body>
     <div id="chatbot-root"></div>
 
-    <script type="text/babel">
+        <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
+        const API_CONFIG = {
+            baseUrl: 'https://localhost:60026',
+            endpoints: { chat: '/api/Chat' }
+        };
+
+        const getHeaders = () => {
+            const headers = {
+                'Content-Type': 'application/json',
+                accept: '*/*'
+            };
+
+            if (window.API_KEY) {
+                headers.Authorization = window.API_KEY.startsWith('Bearer')
+                    ? window.API_KEY
+                    : `Bearer ${window.API_KEY}`;
+            }
+
+            return headers;
+        };
+
+        const INITIAL_MESSAGE = {
+            id: 'welcome',
+            type: 'bot',
+            content: 'Merhaba! Argetek AI asistanına hoş geldiniz. Size nasıl yardımcı olabilirim?',
+            timestamp: new Date()
+        };
+
         const Chatbot = () => {
-            const [messages, setMessages] = useState([]);
+            const [messages, setMessages] = useState([INITIAL_MESSAGE]);
             const [inputValue, setInputValue] = useState('');
             const [isTyping, setIsTyping] = useState(false);
             const [isLoading, setIsLoading] = useState(false);
@@ -292,74 +339,63 @@
             const messagesEndRef = useRef(null);
             const inputRef = useRef(null);
 
-            // API Configuration - Kullanımı kolaylaştırmak için config objesi
-            const API_CONFIG = {
-                baseUrl: 'https://your-api-url.com', // API URL'inizi buraya girin
-                endpoints: {
-                    chat: '/api/chat'
-                }
-            };
-
-            // Sayfa yüklendiğinde hoş geldin mesajı göster
-            useEffect(() => {
-                const welcomeMessage = {
-                    id: Date.now(),
-                    type: 'bot',
-                    content: 'Merhaba! 👋 Argetek AI asistanınız size nasıl yardımcı olabilir?',
-                    timestamp: new Date()
-                };
-                setMessages([welcomeMessage]);
-            }, []);
-
-            // Mesaj gönderildikten sonra scroll to bottom
-            useEffect(() => {
-                scrollToBottom();
-            }, [messages]);
-
             const scrollToBottom = () => {
                 messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
             };
 
-            // API ile iletişim fonksiyonu
-            const sendMessageToAPI = async (message) => {
-                try {
-                    // Örnek API çağrısı - kendi API'nize göre düzenleyin
-                    const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.chat}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            // Gerekirse auth token ekleyin
-                            // 'Authorization': 'Bearer YOUR_TOKEN'
-                        },
-                        body: JSON.stringify({
-                            message: message,
-                            timestamp: new Date().toISOString()
-                        })
-                    });
+            useEffect(() => {
+                scrollToBottom();
+            }, [messages]);
 
-                    if (!response.ok) {
-                        throw new Error(`API hatası: ${response.status}`);
-                    }
+            useEffect(() => {
+                inputRef.current?.focus();
+            }, []);
 
-                    const data = await response.json();
-                    return data.response || data.message || 'API yanıtı alınamadı';
-                    
-                } catch (error) {
-                    console.error('API Hatası:', error);
-                    // Demo modu için örnek yanıtlar
-                    return getDemoResponse(message);
+            const formatApiResponse = (data) => {
+                if (!data || typeof data === 'string') {
+                    return data || '';
                 }
+
+                return (
+                    data.response ||
+                    data.message ||
+                    data.content ||
+                    data.result ||
+                    data.text ||
+                    JSON.stringify(data)
+                );
             };
 
-            // Demo modu için örnek yanıtlar
-            const getDemoResponse = (message) => {
+            const sendMessageToAPI = async (message) => {
+                const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.chat}`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ prompt: message })
+                });
+
+                if (!response.ok) {
+                    const text = await response.text().catch(() => '');
+                    throw new Error(`API hatası: ${response.status} ${text}`);
+                }
+
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    const data = await response.json();
+                    return formatApiResponse(data) || 'API yanıtı alınamadı.';
+                }
+
+                return await response.text();
+            };
+
+            const getDemoResponse = () => {
                 const responses = [
-                    'Anladım, size nasıl yardımcı olabilirim?',
-                    'Bu konuda size yardımcı olmaktan memnuniyet duyarım.',
-                    'Lütfen daha fazla detay paylaşabilir misiniz?',
-                    'Size en iyi şekilde yardımcı olmak için buradayım.',
-                    'Bu sorunun cevabını araştırmam gerekecek.'
+                    'Anladım, size başka nasıl yardımcı olabilirim?',
+                    'Bu konuda yardımcı olmaktan memnuniyet duyarım.',
+                    'Dilerseniz biraz daha detay paylaşabilirsiniz.',
+                    'Size en uygun çözümü bulmak için buradayım.',
+                    'Bu soruyu ekibimizle paylaşmam gerekebilir.'
                 ];
+
                 return responses[Math.floor(Math.random() * responses.length)];
             };
 
@@ -367,7 +403,6 @@
                 const trimmedInput = inputValue.trim();
                 if (!trimmedInput || isLoading) return;
 
-                // Kullanıcı mesajını ekle
                 const userMessage = {
                     id: Date.now(),
                     type: 'user',
@@ -375,26 +410,24 @@
                     timestamp: new Date()
                 };
 
-                setMessages(prev => [...prev, userMessage]);
+                setMessages((prev) => [...prev, userMessage]);
                 setInputValue('');
                 setIsLoading(true);
-                setError(null);
                 setIsTyping(true);
+                setError(null);
 
                 try {
-                    // API'ye mesaj gönder
                     const botResponse = await sendMessageToAPI(trimmedInput);
-                    
-                    // Bot yanıtını ekle
                     const botMessage = {
                         id: Date.now() + 1,
                         type: 'bot',
-                        content: botResponse,
+                        content: botResponse || getDemoResponse(),
                         timestamp: new Date()
                     };
 
-                    setMessages(prev => [...prev, botMessage]);
-                } catch (err) {
+                    setMessages((prev) => [...prev, botMessage]);
+                } catch (apiError) {
+                    console.error(apiError);
                     setError('Mesaj gönderilirken bir hata oluştu. Lütfen tekrar deneyin.');
                 } finally {
                     setIsLoading(false);
@@ -402,9 +435,9 @@
                 }
             };
 
-            const handleKeyPress = (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
+            const handleKeyDown = (event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
                     handleSendMessage();
                 }
             };
@@ -436,7 +469,7 @@
                                 </div>
                             </div>
                         ))}
-                        
+
                         {isTyping && (
                             <div className="message bot">
                                 <div className="message-avatar">
@@ -449,7 +482,7 @@
                                 </div>
                             </div>
                         )}
-                        
+
                         <div ref={messagesEndRef} />
                     </div>
 
@@ -465,8 +498,8 @@
                                 className="chat-input"
                                 placeholder="Mesajınızı yazın..."
                                 value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
-                                onKeyPress={handleKeyPress}
+                                onChange={(event) => setInputValue(event.target.value)}
+                                onKeyDown={handleKeyDown}
                                 disabled={isLoading}
                                 rows={1}
                             />
@@ -483,7 +516,11 @@
             );
         };
 
-        ReactDOM.render(<Chatbot />, document.getElementById('chatbot-root'));
+        const root = ReactDOM.createRoot(document.getElementById('chatbot-root'));
+        root.render(<Chatbot />);
     </script>
 </body>
+
 </html>
+
+
